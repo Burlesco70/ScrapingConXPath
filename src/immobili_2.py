@@ -1,3 +1,5 @@
+# Step 2 di progetto - Introduzione di Typer
+
 import requests
 import lxml.html as html
 import pandas as pd

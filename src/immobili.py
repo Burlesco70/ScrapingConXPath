@@ -1,5 +1,3 @@
-# Versione finale (?)
-
 import requests
 import lxml.html as html
 import pandas as pd
@@ -11,10 +9,11 @@ import time
 # Valori validi per il sito immobiliare.it
 URL_SITO = "https://www.immobiliare.it/"
 ELEMENTI_PER_PAGINA = 25
-XPATH_NUMERO_PAGINE = '//div[@class="in-pagination__item hideOnMobile in-pagination__item--disabled"][2]/text()'
-XPATH_NUMERO_ANNUNCI = '//div[@class="in-searchList__title"]/text()'
+XPATH_NUMERO_PAGINE = '//div[@class="in-pagination__item is-mobileHidden in-pagination__item--disabled"][2]/text()'
+XPATH_NUMERO_ANNUNCI = '//div[@class="in-searchList__title is-listMapLayout"]/text()'
 XPATH_TITOLI = '//a[@class="in-card__title"]/text()'
-XPATH_PREZZI = '//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
+XPATH_LINKS = '//a[@class="in-card__title"]/@href'
+XPATH_PREZZI = '//div[@class="in-realEstateListCard__priceOnTop"]/text()|//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
 XPATH_DESCRIZIONI = '//p[@class="in-realEstateListCard__descriptionShort"]/text()|//p[@class="in-realEstateListCard__description"]/text()'
 
 
@@ -80,12 +79,14 @@ def parser_content(url: str):
         tit = parser.xpath(XPATH_TITOLI)
         prezzi_ann = parser.xpath(XPATH_PREZZI)
         descr = parser.xpath(XPATH_DESCRIZIONI)
+        link = parser.xpath(XPATH_LINKS)
         # Check presenza tutti elementi della tupla
         disallineamento_tuple = False
         if not (
             len(tit) == len(prezzi_ann)
             and len(tit) == len(descr)
             and len(prezzi_ann) == len(descr)
+            and len(link) == len(tit)
         ):
             typer.echo(
                 f"\nATTENZIONE, nella pagina:\n{url} sono stati trovati {len(prezzi_ann)} prezzi, {len(tit)} titoli, {len(descr)} descrizioni."
@@ -96,7 +97,7 @@ def parser_content(url: str):
             disallineamento_tuple = True
         # Allineamenti: composizione lista di lista di tuple
         if not disallineamento_tuple:
-            lista_immobili.append(list(zip(tit, prezzi_ann, descr)))
+            lista_immobili.append(list(zip(tit, prezzi_ann, link, descr)))
     else:
         print("Problemi di connessione ad Internet o sul sito")
         raise typer.Exit()
@@ -133,10 +134,12 @@ def main(
     verbose: bool = False,
 ) -> None:
     """
-    Progetto a scopo didattico di web scraping con XPath sul sito immobiliare.it
-    Cerca nella città fornita come argomento, in affitto o in vendita, case o negozi.
-    Output salvato come file Excel.
-    Esempio, per cercare case in vendita a Biella:
+    CLI di scraping del sito immobiliare.it per cercare case o negozi,
+    in vendita o in affitto, di una determinata località.
+    Le opzioni affitto/vendita e case/negozi sono obbligatorie, così come 
+    ovviamente la località.
+    
+    Esempio di esecuzione per cercare case in vendita a Biella:
 
     python immobili.py -av v -cn c Biella
     """
@@ -167,7 +170,7 @@ def main(
         df_uno = pd.DataFrame(j)
         # Append sul df
         df = pd.concat([df, df_uno])
-    df.columns = ["Titolo", "Prezzo", "Descrizione"]
+    df.columns = ["Titolo", "Prezzo", "Link", "Descrizione"]
     today = date.today()
     # Per evitare nome file e nomi sheet troppo lunghi
     if len(citta) > 10:

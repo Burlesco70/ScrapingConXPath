@@ -15,7 +15,7 @@ def get_numero_pagine(url_padre: str):
     NOTA: il sito limita la ricerca a 80 pagine, 2000 elementi
     '''
     ELEMENTI_PER_PAGINA=25
-    numero_pagine_xpath='//div[@class="in-pagination__item hideOnMobile in-pagination__item--disabled"][2]/text()'
+    numero_pagine_xpath='//div[@class="in-pagination__item is-mobileHidden in-pagination__item--disabled"][2]/text()'
     r=requests.get(url_padre)
     home=r.content.decode('utf-8')
     parser=html.fromstring(home)
@@ -23,7 +23,7 @@ def get_numero_pagine(url_padre: str):
     if np:
         numero_pagine = int(np[0])    
     else:
-        numero_elementi='//div[@class="in-searchList__title"]/text()'
+        numero_elementi='//div[@class="in-searchList__title is-listMapLayout"]/text()'
         numero_el=parser.xpath(numero_elementi)
         if numero_el:
             if numero_el[0].startswith('Nessun risultato'):
@@ -69,7 +69,7 @@ def parser_content(url: str):
     if r.status_code==200:
         # XPATH degli attributi
         titoli='//a[@class="in-card__title"]/text()'
-        prezzi_annunci= '//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
+        prezzi_annunci= '//div[@class="in-realEstateListCard__priceOnTop"]/text()|//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
         descrizioni='//p[@class="in-realEstateListCard__descriptionShort"]/text()|//p[@class="in-realEstateListCard__description"]/text()'       
         #Liste elementi trovati
         tit = parser.xpath(titoli)

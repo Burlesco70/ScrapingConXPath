@@ -14,6 +14,7 @@ XPATH_NUMERO_ANNUNCI = '//div[@class="in-searchList__title is-listMapLayout"]/te
 XPATH_TITOLI = '//a[@class="in-card__title"]/text()'
 XPATH_LINKS = '//a[@class="in-card__title"]/@href'
 XPATH_PREZZI = '//div[@class="in-realEstateListCard__priceOnTop"]/text()|//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
+# Nota: purtroppo le descrizioni non sono sempre presenti
 XPATH_DESCRIZIONI = '//p[@class="in-realEstateListCard__descriptionShort"]/text()|//p[@class="in-realEstateListCard__description"]/text()'
 
 
@@ -134,13 +135,11 @@ def main(
     verbose: bool = False,
 ) -> None:
     """
-    CLI di scraping del sito immobiliare.it per cercare case o negozi,
-    in vendita o in affitto, di una determinata località.
-    Le opzioni affitto/vendita e case/negozi sono obbligatorie, così come 
-    ovviamente la località.
+    Progetto a scopo didattico di web scraping con XPath sul sito immobiliare.it
+    Cerca nella città fornita come argomento, in affitto o in vendita, case o negozi.
+    Output salvato come file Excel.
+    Esempio, per cercare case in vendita a Biella:
     
-    Esempio di esecuzione per cercare case in vendita a Biella:
-
     python immobili.py -av v -cn c Biella
     """
     # Parsing delle pagine; risultati nella var globale lista_immobili

@@ -3,6 +3,9 @@
 .venv
 .pytest_cache
 
+# Personal files
+go.bat
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

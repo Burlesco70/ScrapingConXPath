@@ -9,41 +9,34 @@ import time
 # Valori validi per il sito immobiliare.it
 URL_SITO = "https://www.immobiliare.it/"
 ELEMENTI_PER_PAGINA = 25
-XPATH_NUMERO_PAGINE = '//div[@class="in-pagination__item is-mobileHidden in-pagination__item--disabled"][2]/text()'
-XPATH_NUMERO_ANNUNCI = '//div[@class="in-searchList__title is-listMapLayout"]/text()'
-XPATH_TITOLI = '//a[@class="in-card__title"]/text()'
-XPATH_LINKS = '//a[@class="in-card__title"]/@href'
-XPATH_PREZZI = '//div[@class="in-realEstateListCard__priceOnTop"]/text()|//li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main"]/text() | //li[@class="nd-list__item in-feat__item in-feat__item--main in-realEstateListCard__features--main in-realEstateListCard__features--mainText"]/text() | //div[@class="in-realEstateListCard__features--range"]/text()'
-# Nota: purtroppo le descrizioni non sono sempre presenti
-XPATH_DESCRIZIONI = '//p[@class="in-realEstateListCard__descriptionShort"]/text()|//p[@class="in-realEstateListCard__description"]/text()'
+XPATH_NUMERO_RISULTATI = '//div[@class="in-resultsHeader__title is-listMapLayout"]/text()'
 
+XPATH_TITOLI = '//a[@class="in-reListCard__title"]/text()'
+XPATH_LINKS = '//a[@class="in-reListCard__title"]/@href'
+XPATH_PREZZI = '//div[@class="in-reListCardPrice"]/span/text()'
 
 def get_numero_pagine(url_padre: str) -> int:
     """
     Funzione privata, al momento specifica per il sito immobiliare.it, che verifica il numero di pagine
     da analizzare, dato un url_padre. Usata da get_urls.
-    Se il numero delle pagine non è presente, viene calcolato in base al numero di elementi
-    NOTA: come massimo, il sito limita la ricerca a 80 pagine, 2000 elementi
+    Il numero delle pagine viene calcolato in base al numero di elementi
     """
     r = requests.get(url_padre)
     home = r.content.decode("utf-8")
     parser = html.fromstring(home)
-    np = parser.xpath(XPATH_NUMERO_PAGINE)
-    if np:
-        numero_pagine = int(np[0])
-    else:
-        numero_el = parser.xpath(XPATH_NUMERO_ANNUNCI)
-        if numero_el:
-            if numero_el[0].startswith("Nessun risultato"):
-                print("Nessun risultato trovato per la ricerca richiesta")
-                raise typer.Exit()
-            elementi = int(numero_el[0].split(" ")[0].replace(".", ""))
-            numero_pagine = elementi // ELEMENTI_PER_PAGINA
-            if elementi % ELEMENTI_PER_PAGINA != 0:
-                numero_pagine = (elementi // ELEMENTI_PER_PAGINA) + 1
-        else:
+    nr = parser.xpath(XPATH_NUMERO_RISULTATI)
+    print(url_padre, nr)
+    if nr:
+        if nr[0].startswith("Nessun risultato"):
             print("Nessun risultato trovato per la ricerca richiesta")
             raise typer.Exit()
+        elementi = int(nr[0].split(" ")[0].replace(".", ""))
+        numero_pagine = elementi // ELEMENTI_PER_PAGINA
+        if elementi % ELEMENTI_PER_PAGINA != 0:
+            numero_pagine = (elementi // ELEMENTI_PER_PAGINA) + 1
+    else:
+        print("Nessun risultato trovato per la ricerca richiesta")
+        raise typer.Exit()
     return numero_pagine
 
 
@@ -77,16 +70,14 @@ def parser_content(url: str):
     parser = html.fromstring(home)
     if r.status_code == 200:
         # Liste elementi trovati
+        # Rispetto alla versione precedente è sparita la descrizione
         tit = parser.xpath(XPATH_TITOLI)
         prezzi_ann = parser.xpath(XPATH_PREZZI)
-        descr = parser.xpath(XPATH_DESCRIZIONI)
         link = parser.xpath(XPATH_LINKS)
         # Check presenza tutti elementi della tupla
         disallineamento_tuple = False
         if not (
             len(tit) == len(prezzi_ann)
-            and len(tit) == len(descr)
-            and len(prezzi_ann) == len(descr)
             and len(link) == len(tit)
         ):
             typer.echo(
@@ -98,13 +89,13 @@ def parser_content(url: str):
             disallineamento_tuple = True
         # Allineamenti: composizione lista di lista di tuple
         if not disallineamento_tuple:
-            lista_immobili.append(list(zip(tit, prezzi_ann, link, descr)))
+            lista_immobili.append(list(zip(tit, prezzi_ann, link)))
     else:
         print("Problemi di connessione ad Internet o sul sito")
         raise typer.Exit()
 
 
-def affitto_vendita_callback(value: str) -> str:
+def investimento_callback(value: str) -> str:
     if value == "a" or value == "A":
         value = "affitto"
     if value == "v" or value == "V":
@@ -117,43 +108,63 @@ def affitto_vendita_callback(value: str) -> str:
 def tipo_immobile_callback(value: str) -> str:
     if value == "c" or value == "C":
         value = "case"
+    if value == "g" or value == "G":
+        value = "garage"
+    if value == "p" or value == "P":
+        value = "palazzi"
+    if value == "u" or value == "U":
+        value = "uffici"
     if value == "n" or value == "N":
         value = "negozi"
-    if value != "case" and value != "negozi":
-        raise typer.BadParameter("Solo 'case' o 'negozi' sono ammessi")
+    if value == "m" or value == "M":
+        value = "magazzini"
+    if value == "cp" or value == "CP":
+        value = "capannoni"
+    if value != "case" and value != "garage" and value != "palazzi" and value != "uffici" and value != "negozi" and value != "magazzini" and value != "capannoni":
+        raise typer.BadParameter("Solo 'case', 'garage', 'palazzi', 'uffici', 'negozi', 'magazzini' o 'capannoni' sono ammessi")
     return value
-
 
 def main(
     citta: str,
-    affitto_vendita: str = typer.Option(
-        ..., "-affitto_vendita", "-av", callback=affitto_vendita_callback
+    investimento: str = typer.Option(
+        ..., 
+        "-I", 
+        "---investimento", 
+        callback=investimento_callback
     ),
-    case_negozi: str = typer.Option(
-        ..., "-case_negozi", "-cn", callback=tipo_immobile_callback
+    tipologia: str = typer.Option(
+        ..., 
+        "-T", 
+        "---tipologia", 
+        help="Opzioni possibili: 'c' per Case, 'g' per Garage, 'p' per Palazzi, 'u' per Uffici, 'n' per Negozi, 'm' per Magazzini', 'cp' per Capannoni",
+        callback=tipo_immobile_callback
     ),
-    verbose: bool = False,
+    verbose: bool = False,        
 ) -> None:
     """
     Progetto a scopo didattico di web scraping con XPath sul sito immobiliare.it
     Cerca nella città fornita come argomento, in affitto o in vendita, case o negozi.
     Output salvato come file Excel.
     Esempio, per cercare case in vendita a Biella:
-    
-    python immobili.py -av v -cn c Biella
+
+    python immobili.py -I v -T c Biella
+
+    Per cercare capannoni in affitto a Vercelli:
+
+    python immobili.py -I a -T cp Vercelli
     """
     # Parsing delle pagine; risultati nella var globale lista_immobili
     # Costruzione url, richiamo parser e costruzione dataframe
     # Gestione città formate da più parole, es Casale Monferrato
     citta_url = citta.replace(" ", "-").lower()
     global lista_immobili
-    url_padre = f"{URL_SITO}{affitto_vendita.lower()}-{case_negozi.lower()}/{citta_url}/?criterio=rilevanza"
+    url_padre = f"{URL_SITO}{investimento.lower()}-{tipologia.lower()}/{citta_url}/?criterio=rilevanza"
     lista_pagine = get_urls(url_padre)
     lista_immobili = []
     numero_pagine = len(lista_pagine)
     with typer.progressbar(
         enumerate(lista_pagine),
-        label=f"Sto cercando {case_negozi} in {affitto_vendita} a {citta.capitalize()}...",
+        label=f"Sto cercando {tipologia} in {investimento} a {citta.capitalize()}...",
         length=numero_pagine,
     ) as progress:
         for indx, i in progress:
@@ -169,7 +180,7 @@ def main(
         df_uno = pd.DataFrame(j)
         # Append sul df
         df = pd.concat([df, df_uno])
-    df.columns = ["Titolo", "Prezzo", "Link", "Descrizione"]
+    df.columns = ["Titolo", "Prezzo", "Link"]
     today = date.today()
     # Per evitare nome file e nomi sheet troppo lunghi
     if len(citta) > 10:
@@ -177,9 +188,9 @@ def main(
     else:
         citta_nomefile = citta
     df.to_excel(
-        f"{affitto_vendita[0].capitalize()}-{case_negozi[0].capitalize()}-{citta_nomefile.capitalize()}-{today.strftime('%d-%m-%y')}.xlsx",
+        f"{investimento[0].capitalize()}-{tipologia[0].capitalize()}-{citta_nomefile.capitalize()}-{today.strftime('%d-%m-%y')}.xlsx",
         index=False,
-        sheet_name=f"{affitto_vendita} {case_negozi} a {citta_nomefile.capitalize()}",
+        sheet_name=f"{investimento} {tipologia} a {citta_nomefile.capitalize()}",
     )
 
 

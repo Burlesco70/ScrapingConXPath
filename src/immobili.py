@@ -128,7 +128,8 @@ def main(
     investimento: str = typer.Option(
         ..., 
         "-I", 
-        "---investimento", 
+        "---investimento",
+        help="Opzioni possibili: 'a' per Affitto o 'v' per Vendita",
         callback=investimento_callback
     ),
     tipologia: str = typer.Option(

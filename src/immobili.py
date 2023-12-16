@@ -25,17 +25,16 @@ def get_numero_pagine(url_padre: str) -> int:
     home = r.content.decode("utf-8")
     parser = html.fromstring(home)
     nr = parser.xpath(XPATH_NUMERO_RISULTATI)
-    print(url_padre, nr)
     if nr:
         if nr[0].startswith("Nessun risultato"):
-            print("Nessun risultato trovato per la ricerca richiesta")
+            typer.echo("Nessun risultato trovato per la ricerca richiesta")
             raise typer.Exit()
         elementi = int(nr[0].split(" ")[0].replace(".", ""))
         numero_pagine = elementi // ELEMENTI_PER_PAGINA
         if elementi % ELEMENTI_PER_PAGINA != 0:
             numero_pagine = (elementi // ELEMENTI_PER_PAGINA) + 1
     else:
-        print("Nessun risultato trovato per la ricerca richiesta")
+        typer.echo("Nessun risultato trovato per la ricerca richiesta")
         raise typer.Exit()
     return numero_pagine
 
@@ -91,7 +90,7 @@ def parser_content(url: str):
         if not disallineamento_tuple:
             lista_immobili.append(list(zip(tit, prezzi_ann, link)))
     else:
-        print("Problemi di connessione ad Internet o sul sito")
+        typer.echo("Problemi di connessione ad Internet o sul sito")
         raise typer.Exit()
 
 

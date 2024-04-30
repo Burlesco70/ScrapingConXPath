@@ -9,11 +9,12 @@ import time
 # Valori validi per il sito immobiliare.it
 URL_SITO = "https://www.immobiliare.it/"
 ELEMENTI_PER_PAGINA = 25
-XPATH_NUMERO_RISULTATI = '//div[@class="in-resultsHeader__title is-listMapLayout"]/text()'
-
-XPATH_TITOLI = '//a[@class="in-reListCard__title"]/text()'
-XPATH_LINKS = '//a[@class="in-reListCard__title"]/@href'
-XPATH_PREZZI = '//div[@class="in-reListCardPrice"]/span/text()'
+# Attenzione: numero risultati, non numero pagine!
+XPATH_NUMERO_RISULTATI = '//div[@class="in-realEstateListHeader__title"]/text()'
+# Gestione aggiunta is-lowered / is-spaced
+XPATH_TITOLI = '( //a[@class="in-reListCard__title"]/text() | //a[@class="in-reListCard__title is-spaced"]/text() )'
+XPATH_LINKS = '( //a[@class="in-reListCard__title"]/@href | //a[@class="in-reListCard__title is-spaced"]/@href )'
+XPATH_PREZZI = '( //div[@class="in-reListCardPrice"]/span/text() | //div[@class="in-reListCardPrice is-lowered"]/span/text() )'
 
 def get_numero_pagine(url_padre: str) -> int:
     """
